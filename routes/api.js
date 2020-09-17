@@ -35,7 +35,7 @@ router.get('/push', async (req, res) => {
     await client.connect();
     const database = client.db('tlmn');
     const collection = database.collection('status');
-    const status = await collection.findOne({_id: new ObjectID(req.query['id'])});
+    const status = await collection.findOne({ _id: new ObjectID(req.query['id']) });
     client.close();
     res.json(status);
 });
@@ -52,7 +52,7 @@ router.post('/push', async (req, res, next) => {
     await client.connect();
     const database = client.db('tlmn');
     const collectionStatus = database.collection('status');
-    await collectionStatus.insertOne({_id: id, msg: 'sending', running: 1, success: 0, failure: 0, total: 0});
+    await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0 }); //success: 0, failure: 0,
 
     res.redirect('/api/push?id=' + id.toHexString());
     let body = req.body;
@@ -66,10 +66,10 @@ router.post('/push', async (req, res, next) => {
     date.setDate(date.getDate() - 10);
     date.setHours(0, 0, 0, 0);
     const collection = database.collection('players');
-    const cursor = collection.find({updated_at: {$gte: date}});
+    const cursor = collection.find({ updated_at: { $gte: date } });
 
     const total = await cursor.count();
-    await collectionStatus.updateOne({_id: id}, {$set: {total: total}});
+    await collectionStatus.updateOne({ _id: id }, { $set: { total: total } });
     let batch = [];
     await cursor.batchSize(100).forEach(async (item) => {
         let recipient = JSON.stringify({ id: item.psid });
@@ -81,13 +81,15 @@ router.post('/push', async (req, res, next) => {
         batch.push(e);
         if (batch.length >= 50) {
             await send(batch);
+            await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
             batch = [];
         }
     });
     if (batch.length > 0) {
         await send(batch);
+        await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
-    await collectionStatus.updateOne({_id: id}, {$set: {running: 0}});
+    await collectionStatus.updateOne({ _id: id }, { $set: { running: 0 } });
     client.close();
 });
 
@@ -96,11 +98,11 @@ async function send(batch) {
 
     const response = await fetch('https://graph.facebook.com/v2.6', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     });
 
     return response.json();
 }
-
 
 module.exports = router;
