@@ -1,21 +1,24 @@
-var express = require('express');
-var router = express.Router();
+const { MongoClient, ObjectID } = require('mongodb');
+const express = require('express');
+const router = express.Router();
 
 /* GET home page. */
-router.get('/', (request, response) => {
-    if (request.query['hub.mode'] === 'subscribe' &&
-        request.query['hub.verify_token'] === process.env.BOT_VERIFY_TOKEN) {
-        console.log('Validating webhook');
-        response.status(200).send(request.query['hub.challenge']);
+router.get('/', (req, res) => {
+    // Parse the query params
+    let mode = req.query['hub.mode'];
+    let token = req.query['hub.verify_token'];
+    let challenge = req.query['hub.challenge'];
+    if (mode === 'subscribe' && token === process.env.BOT_VERIFY_TOKEN) {
+        console.log('WEBHOOK_VERIFIED');
+        res.status(200).send(challenge);
     } else {
-        console.error('Failed validation. Make sure the tokens match.');
-        response.sendStatus(403);
+        console.warn('Failed validation. Make sure the tokens match.');
+        res.sendStatus(403);
     }
 });
 
-router.post('/', (request, response) => {
-    var data = request.body;
-    console.log('received bot webhook');
+router.post('/', (req, res) => {
+    let data = req.body;
     // Make sure this is a page subscription
     if (data.object === 'page') {
         // Iterate over each entry - there may be multiple if batched
@@ -34,7 +37,7 @@ router.post('/', (request, response) => {
             });
         });
     }
-    response.sendStatus(200);
+    res.sendStatus(200);
 })
 
 //
@@ -47,7 +50,7 @@ function receivedMessage(event) {
 //
 // Handle game_play (when player closes game) events here.
 //
-function receivedGameplay(event) {
+async function receivedGameplay(event) {
     // Page-scoped ID of the bot user
     var senderId = event.sender.id;
 
@@ -61,73 +64,18 @@ function receivedGameplay(event) {
         // The variable payload here contains data set by
         // FBInstant.setSessionData()
         //
-        var payload = JSON.parse(event.game_play.payload);
+        // var payload = JSON.parse(event.game_play.payload);
 
-        // In this example, the bot is just "echoing" the message received
-        // immediately. In your game, you'll want to delay the bot messages
-        // to remind the user to play 1, 3, 7 days after game play, for example.
-        sendMessage(senderId, null, 'Want to play again?', 'Play now!', payload);
-    }
-}
-
-//
-// Send bot message
-//
-// player (string) : Page-scoped ID of the message recipient
-// context (string): FBInstant context ID. Opens message in a specific context
-// message (string): Message text
-// cta (string): Button text
-// payload (object): Custom data that will be sent to game session
-//
-function sendMessage(player, context, message, cta, payload) {
-    var button = {
-        type: 'game_play',
-        title: cta
-    };
-
-    if (context) {
-        button.context = context;
-    }
-    if (payload) {
-        button.payload = JSON.stringify(payload);
-    }
-    var messageData = {
-        recipient: {
-            id: player
-        },
-        message: {
-            attachment: {
-                type: 'template',
-                payload: {
-                    template_type: 'generic',
-                    elements: [
-                        {
-                            title: message,
-                            buttons: [button]
-                        }
-                    ]
-                }
-            }
-        }
-    };
-
-    callSendAPI(messageData);
-}
-
-function callSendAPI(messageData) {
-    var graphApiUrl = 'https://graph.facebook.com/me/messages?access_token=' + process.env.PAGE_ACCESS_TOKEN;
-    fetch({
-        url: graphApiUrl,
-        method: 'POST',
-        json: true,
-        body: messageData
-    }, function (error, response, body) {
-        console.error(
-            'Send api returned error', error,
-            'Status code', response.statusCode,
-            'Body', body
+        const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+        await client.connect();
+        const database = client.db('tlmn');
+        const collection = database.collection('players');
+        await collection.updateOne(
+            { _id: event.game_play.player_id },
+            { $set: { psid: senderId, updated_at: new Date() } },
+            { upsert: true }
         );
-    });
+    }
 }
 
 module.exports = router;
