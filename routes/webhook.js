@@ -1,4 +1,4 @@
-const { MongoClient, ObjectID } = require('mongodb');
+const { MongoClient } = require('mongodb');
 const express = require('express');
 const router = express.Router();
 
@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
     let mode = req.query['hub.mode'];
     let token = req.query['hub.verify_token'];
     let challenge = req.query['hub.challenge'];
-    if (mode === 'subscribe' && token === process.env.BOT_VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
         console.log('WEBHOOK_VERIFIED');
         res.status(200).send(challenge);
     } else {
@@ -27,25 +27,14 @@ router.post('/', (req, res) => {
             // var pageID = entry.id
             // var timeOfEvent = entry.time
             entry.messaging.forEach(function (event) {
-                if (event.message) {
-                    receivedMessage(event);
-                } else if (event.game_play) {
+                if (event.game_play) {
                     receivedGameplay(event);
-                } else {
-                    console.log('Webhook received unknown event: ', event);
                 }
             });
         });
     }
     res.sendStatus(200);
 })
-
-//
-// Handle messages sent by player directly to the game bot here
-//
-function receivedMessage(event) {
-
-}
 
 //
 // Handle game_play (when player closes game) events here.
@@ -75,6 +64,7 @@ async function receivedGameplay(event) {
             { $set: { psid: senderId, updated_at: new Date() } },
             { upsert: true }
         );
+        client.close();
     }
 }
 
