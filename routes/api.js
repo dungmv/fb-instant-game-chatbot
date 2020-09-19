@@ -52,7 +52,7 @@ router.post('/push', async (req, res, next) => {
     await client.connect();
     const database = client.db('tlmn');
     const collectionStatus = database.collection('status');
-    await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0 }); //success: 0, failure: 0,
+    await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0 });
 
     res.redirect('/api/push?id=' + id.toHexString());
     let body = req.body;
@@ -75,34 +75,37 @@ router.post('/push', async (req, res, next) => {
         let recipient = JSON.stringify({ id: item.psid });
         let e = {
             method: "POST",
-            relative_url: "me/messages",
+            relative_url: "v8.0/me/messages",
             body: "recipient=" + recipient + "&message=" + JSON.stringify(message)
         };
         batch.push(e);
         if (batch.length >= 50) {
-            await send(batch);
+            await send(batch, collectionStatus, id);
             await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
             batch = [];
         }
     });
     if (batch.length > 0) {
-        await send(batch);
+        await send(batch, collectionStatus, id);
         await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
     await collectionStatus.updateOne({ _id: id }, { $set: { running: 0 } });
     client.close();
 });
 
-async function send(batch) {
+async function send(batch, collectionStatus, id) {
     let body = querystring.stringify({ access_token: PAGE_ACCESS_TOKEN, include_headers: false, batch: JSON.stringify(batch) });
-
-    const response = await fetch('https://graph.facebook.com/v2.6', {
+    const response = await fetch('https://graph.facebook.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     });
-
-    return response.json();
+    const res = await response.json();
+    res.forEach(async (v) => {
+        const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
+        await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
+    });
+    return res;
 }
 
 module.exports = router;
