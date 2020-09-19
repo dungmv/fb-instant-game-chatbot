@@ -47,25 +47,16 @@ async function receivedGameplay(event) {
     // FBInstant context ID: event.game_play.context_id
     // User's Page-scoped ID: event.sender.id
 
-    // Check for payload
-    if (event.game_play.payload) {
-        //
-        // The variable payload here contains data set by
-        // FBInstant.setSessionData()
-        //
-        // var payload = JSON.parse(event.game_play.payload);
-
-        const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
-        await client.connect();
-        const database = client.db('tlmn');
-        const collection = database.collection('players');
-        await collection.updateOne(
-            { _id: event.game_play.player_id },
-            { $set: { psid: senderId, updated_at: new Date() } },
-            { upsert: true }
-        );
-        client.close();
-    }
+    const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+    await client.connect();
+    const database = client.db('tlmn');
+    const collection = database.collection('players');
+    await collection.updateOne(
+        { _id: event.game_play.player_id },
+        { $set: { psid: senderId, updated_at: new Date() } },
+        { upsert: true }
+    );
+    client.close();
 }
 
 module.exports = router;
