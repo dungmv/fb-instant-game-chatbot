@@ -80,13 +80,14 @@ router.post('/push', async (req, res, next) => {
         };
         batch.push(e);
         if (batch.length >= 50) {
-            let res = await send(batch);
+            let copy = batch;
+            batch = [];
+            let res = await send(copy);
             res.forEach(async (v) => {
                 const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
                 await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
             });
             await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
-            batch = [];
         }
     });
     if (batch.length > 0) {
