@@ -80,32 +80,35 @@ router.post('/push', async (req, res, next) => {
         };
         batch.push(e);
         if (batch.length >= 50) {
-            await send(batch, collectionStatus, id);
+            let res = await send(batch);
+            res.forEach(async (v) => {
+                const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
+                await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
+            });
             await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
             batch = [];
         }
     });
     if (batch.length > 0) {
-        await send(batch, collectionStatus, id);
+        let res = await send(batch);
+        res.forEach(async (v) => {
+            const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
+            await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
+        });
         await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
     await collectionStatus.updateOne({ _id: id }, { $set: { running: 0 } });
     client.close();
 });
 
-async function send(batch, collectionStatus, id) {
+async function send(batch) {
     let body = querystring.stringify({ access_token: PAGE_ACCESS_TOKEN, include_headers: false, batch: JSON.stringify(batch) });
     const response = await fetch('https://graph.facebook.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     });
-    const res = await response.json();
-    res.forEach(async (v) => {
-        const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
-        await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
-    });
-    return res;
+    return response.json();
 }
 
 module.exports = router;
