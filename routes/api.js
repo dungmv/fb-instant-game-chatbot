@@ -105,7 +105,7 @@ async function send(batch, id) {
     let messageError = 0;
     result.forEach((v) => {
         if (v.code == 200) messageSuccess++;
-        else messageError++;
+        else { messageError++; console.warn(JSON.stringify(v)); }
     });
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
