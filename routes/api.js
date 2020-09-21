@@ -52,7 +52,7 @@ router.post('/push', async (req, res, next) => {
     await client.connect();
     const database = client.db('tlmn');
     const collectionStatus = database.collection('status');
-    await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0 });
+    await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0, created_at: new Date() });
 
     res.redirect('/api/push?id=' + id.toHexString());
     let body = req.body;
@@ -97,7 +97,7 @@ router.post('/push', async (req, res, next) => {
         });
         await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
-    await collectionStatus.updateOne({ _id: id }, { $set: { running: 0 } });
+    await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date() } });
     await client.close();
 });
 
