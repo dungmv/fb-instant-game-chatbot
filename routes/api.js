@@ -47,6 +47,12 @@ router.post('/push', async (req, res, next) => {
         return;
     }
 
+    let body = req.body;
+    if (!body.title || !body.mssage || !body.image || !body.button_title)  {
+        res.status(400).json({ err: 1, msg: 'missing some field' });
+        return;
+    }
+
     const id = new ObjectID();
 
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
@@ -56,7 +62,6 @@ router.post('/push', async (req, res, next) => {
     await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0, created_at: new Date() });
 
     res.redirect('/api/push?id=' + id.toHexString());
-    let body = req.body;
     message.attachment.payload.elements[0].title = body.title;
     message.attachment.payload.elements[0].subtitle = body.mssage;
     message.attachment.payload.elements[0].image_url = body.image;
@@ -89,7 +94,7 @@ router.post('/push', async (req, res, next) => {
         await send(batch, id);
         await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
-    await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date() } });
+    await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date(), msg: 'completed' } });
     await client.close();
 });
 
