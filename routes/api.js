@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+const MONGO_URI = process.env.MONGO_URI;
 const message = {
     attachment: {
         type: "template",
@@ -81,34 +82,36 @@ router.post('/push', async (req, res, next) => {
         batch.push(e);
         if (batch.length >= 50) {
             let copy = batch; batch = [];
-            let res = await send(copy);
-            res.forEach(async (v) => {
-                const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
-                await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
-            });
-            await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
+            await send(copy, id);
         }
     });
     if (batch.length > 0) {
-        let res = await send(batch);
-        res.forEach(async (v) => {
-            const updateQuery = v.code == 200 ? { success: 1 } : { error: 1 };
-            await collectionStatus.updateOne({ _id: id }, { $inc: updateQuery });
-        });
+        await send(batch, id);
         await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
     await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date() } });
     await client.close();
 });
 
-async function send(batch) {
+async function send(batch, id) {
     let body = querystring.stringify({ access_token: PAGE_ACCESS_TOKEN, include_headers: false, batch: JSON.stringify(batch) });
     const response = await fetch('https://graph.facebook.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     });
-    return response.json();
+    const res = response.json();
+    let messageSuccess = 0;
+    let messageError = 0;
+    res.forEach((v) => {
+        if (v.code == 200) messageSuccess++;
+        else messageError++;
+    });
+    const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
+    await client.connect();
+    const database = client.db('tlmn');
+    const collectionStatus = database.collection('status');
+    await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length, success: messageSuccess, error: messageError } });
 }
 
 module.exports = router;
