@@ -1,8 +1,8 @@
 const { MongoClient, ObjectID } = require('mongodb');
 const express = require('express');
 const router = express.Router();
-const querystring = require('querystring');
 const fetch = require('node-fetch');
+const FormData = require('form-data');
 
 const SECRET_KEY = process.env.SECRET_KEY;
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
@@ -27,21 +27,21 @@ const message = {
 };
 
 /* GET users listing. */
-router.get('/', (req, res, next) => {
+router.get('/', (req, res) => {
     res.send('respond with a resource');
 });
 
 router.get('/push', async (req, res) => {
-    const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+    const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db('tlmn');
     const collection = database.collection('status');
     const status = await collection.findOne({ _id: new ObjectID(req.query['id']) });
-    client.close();
+    await client.close();
     res.json(status);
 });
 
-router.post('/push', async (req, res, next) => {
+router.post('/push', async (req, res) => {
     if (req.headers["secret-key"] != SECRET_KEY) {
         res.status(400).json({ err: 1, msg: 'wrong secret key' });
         return;
@@ -98,18 +98,21 @@ router.post('/push', async (req, res, next) => {
 });
 
 async function send(batch, id) {
-    let body = querystring.stringify({ access_token: PAGE_ACCESS_TOKEN, include_headers: false, batch: JSON.stringify(batch) });
+    const form = new FormData();
+    form.append('access_token', PAGE_ACCESS_TOKEN);
+    form.append('include_headers', 'false');
+    form.append('batch', JSON.stringify(batch));
+
     const response = await fetch('https://graph.facebook.com', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
+        body: form
     });
     const result = await response.json();
     let messageSuccess = 0;
     let messageError = 0;
     result.forEach((v) => {
         if (v.code == 200) messageSuccess++;
-        else { messageError++; console.warn(v); }
+        else { messageError++; console.warn(v.body); }
     });
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
