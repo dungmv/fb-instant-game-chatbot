@@ -100,10 +100,10 @@ async function send(batch, id) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body
     });
-    const res = response.json();
+    const result = await response.json();
     let messageSuccess = 0;
     let messageError = 0;
-    res.forEach((v) => {
+    result.forEach((v) => {
         if (v.code == 200) messageSuccess++;
         else messageError++;
     });
