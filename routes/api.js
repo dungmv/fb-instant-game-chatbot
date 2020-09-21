@@ -112,6 +112,7 @@ async function send(batch, id) {
     const database = client.db('tlmn');
     const collectionStatus = database.collection('status');
     await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length, success: messageSuccess, error: messageError } });
+    await client.close();
 }
 
 module.exports = router;
