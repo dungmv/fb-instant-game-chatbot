@@ -92,7 +92,6 @@ router.post('/push', async (req, res, next) => {
     });
     if (batch.length > 0) {
         await send(batch, id);
-        await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length } });
     }
     await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date(), msg: 'completed' } });
     await client.close();
