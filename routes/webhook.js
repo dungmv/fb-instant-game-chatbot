@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectID } = require('mongodb');
 const express = require('express');
 const router = express.Router();
 
@@ -9,7 +9,25 @@ router.get('/', (req, res) => {
     let token = req.query['hub.verify_token'];
     let challenge = req.query['hub.challenge'];
     if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-        console.log('WEBHOOK_VERIFIED');
+        res.status(200).send(challenge);
+    } else {
+        console.warn('Failed validation. Make sure the tokens match.');
+        res.sendStatus(403);
+    }
+});
+
+/* GET home page. */
+router.get('/:id', async (req, res) => {
+    // Parse the query params
+    let mode = req.query['hub.mode'];
+    let token = req.query['hub.verify_token'];
+    let challenge = req.query['hub.challenge'];
+    const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
+    await client.connect();
+    const database = client.db('chatbot');
+    const collection = database.collection('games');
+    const config = await collection.findOne({_id: ObjectID(req.params.id)});
+    if (mode === 'subscribe' && token === config.VERIFY_TOKEN) {
         res.status(200).send(challenge);
     } else {
         console.warn('Failed validation. Make sure the tokens match.');
@@ -18,6 +36,25 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
+    let data = req.body;
+    // Make sure this is a page subscription
+    if (data.object === 'page') {
+        // Iterate over each entry - there may be multiple if batched
+        data.entry.forEach(function (entry) {
+            // Here you can obtain values about the webhook, such as:
+            // var pageID = entry.id
+            // var timeOfEvent = entry.time
+            entry.messaging.forEach(function (event) {
+                if (event.game_play) {
+                    receivedGameplay(event);
+                }
+            });
+        });
+    }
+    res.sendStatus(200);
+})
+
+router.post('/:id', (req, res) => {
     let data = req.body;
     // Make sure this is a page subscription
     if (data.object === 'page') {
