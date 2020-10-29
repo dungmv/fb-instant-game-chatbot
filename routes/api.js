@@ -32,17 +32,17 @@ router.get('/', (req, res) => {
     res.send('respond with a resource');
 });
 
-router.get('/push', async (req, res) => {
+router.get('/push/:id', async (req, res) => {
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db(DB_NAME);
-    const collection = database.collection('status');
+    const collection = database.collection('status-' + req.params.id);
     const status = await collection.findOne({ _id: new ObjectID(req.query['id']) });
     await client.close();
     res.json(status);
 });
 
-router.post('/push', async (req, res) => {
+router.post('/push/:id', async (req, res) => {
     if (req.headers["secret-key"] != SECRET_KEY) {
         res.status(400).json({ err: 1, msg: 'wrong secret key' });
         return;
@@ -59,7 +59,7 @@ router.post('/push', async (req, res) => {
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db(DB_NAME);
-    const collectionStatus = database.collection('status');
+    const collectionStatus = database.collection('status-' + req.params.id);
     await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0, created_at: new Date() });
 
     res.redirect('/api/push?id=' + id.toHexString());
@@ -72,7 +72,7 @@ router.post('/push', async (req, res) => {
     const date = new Date();
     date.setDate(date.getDate() - 10);
     date.setHours(0, 0, 0, 0);
-    const collection = database.collection('players');
+    const collection = database.collection('players-' + req.params.id);
     const cursor = collection.find({ updated_at: { $gte: date } });
 
     const total = await cursor.count();
@@ -118,7 +118,7 @@ async function send(batch, id) {
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db(DB_NAME);
-    const collectionStatus = database.collection('status');
+    const collectionStatus = database.collection('status-' + req.params.id);
     await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length, success: messageSuccess, error: messageError } });
     await client.close();
 }
