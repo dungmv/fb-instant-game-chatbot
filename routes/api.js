@@ -5,7 +5,6 @@ const fetch = require('node-fetch');
 const FormData = require('form-data');
 
 const SECRET_KEY = process.env.SECRET_KEY;
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME;
 const message = {
@@ -69,6 +68,9 @@ router.post('/push/:id', async (req, res) => {
     message.attachment.payload.elements[0].buttons[0].title = body.button_title;
     message.attachment.payload.elements[0].buttons[0].payload = body.button_payload;
 
+    const collectionAccount = database.collection('accounts');
+    const config = await collectionAccount.findOne({_id: ObjectID(req.params.id)});
+
     const date = new Date();
     date.setDate(date.getDate() - 10);
     date.setHours(0, 0, 0, 0);
@@ -88,17 +90,17 @@ router.post('/push/:id', async (req, res) => {
         batch.push(e);
         if (batch.length >= 50) {
             let copy = batch; batch = [];
-            await send(copy, id);
+            await send(copy, id, config.PAGE_ACCESS_TOKEN);
         }
     });
     if (batch.length > 0) {
-        await send(batch, id);
+        await send(batch, id, config.PAGE_ACCESS_TOKEN);
     }
     await collectionStatus.updateOne({ _id: id }, { $set: { running: 0, completed_at: new Date(), msg: 'completed' } });
     await client.close();
 });
 
-async function send(batch, id) {
+async function send(batch, id, PAGE_ACCESS_TOKEN) {
     const form = new FormData();
     form.append('access_token', PAGE_ACCESS_TOKEN);
     form.append('include_headers', 'false');
