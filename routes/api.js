@@ -7,6 +7,7 @@ const FormData = require('form-data');
 const SECRET_KEY = process.env.SECRET_KEY;
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
+const DB_NAME = process.env.DB_NAME;
 const message = {
     attachment: {
         type: "template",
@@ -34,7 +35,7 @@ router.get('/', (req, res) => {
 router.get('/push', async (req, res) => {
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
-    const database = client.db('tlmn');
+    const database = client.db(DB_NAME);
     const collection = database.collection('status');
     const status = await collection.findOne({ _id: new ObjectID(req.query['id']) });
     await client.close();
@@ -57,7 +58,7 @@ router.post('/push', async (req, res) => {
 
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
-    const database = client.db('tlmn');
+    const database = client.db(DB_NAME);
     const collectionStatus = database.collection('status');
     await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0, created_at: new Date() });
 
@@ -116,7 +117,7 @@ async function send(batch, id) {
     });
     const client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
-    const database = client.db('tlmn');
+    const database = client.db(DB_NAME);
     const collectionStatus = database.collection('status');
     await collectionStatus.updateOne({ _id: id }, { $inc: { completed: batch.length, success: messageSuccess, error: messageError } });
     await client.close();

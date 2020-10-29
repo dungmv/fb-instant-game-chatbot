@@ -24,8 +24,8 @@ router.get('/:id', async (req, res) => {
     let challenge = req.query['hub.challenge'];
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
-    const database = client.db('chatbot');
-    const collection = database.collection('games');
+    const database = client.db(process.env.DB_NAME);
+    const collection = database.collection('accounts');
     const config = await collection.findOne({_id: ObjectID(req.params.id)});
     if (mode === 'subscribe' && token === config.VERIFY_TOKEN) {
         res.status(200).send(challenge);
@@ -86,7 +86,7 @@ async function receivedGameplay(event) {
 
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
-    const database = client.db('tlmn');
+    const database = client.db(process.env.DB_NAME);
     const collection = database.collection('players');
     await collection.updateOne(
         { _id: event.game_play.player_id },
