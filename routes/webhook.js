@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
             // var timeOfEvent = entry.time
             entry.messaging.forEach(function (event) {
                 if (event.game_play) {
-                    receivedGameplay(event);
+                    receivedGameplay(event, 'players');
                 }
             });
         });
@@ -65,7 +65,7 @@ router.post('/:id', (req, res) => {
             // var timeOfEvent = entry.time
             entry.messaging.forEach(function (event) {
                 if (event.game_play) {
-                    receivedGameplay(event);
+                    receivedGameplay(event, 'players-' + req.params.id);
                 }
             });
         });
@@ -76,7 +76,7 @@ router.post('/:id', (req, res) => {
 //
 // Handle game_play (when player closes game) events here.
 //
-async function receivedGameplay(event) {
+async function receivedGameplay(event, collectionName) {
     // Page-scoped ID of the bot user
     var senderId = event.sender.id;
 
@@ -87,7 +87,7 @@ async function receivedGameplay(event) {
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db(process.env.DB_NAME);
-    const collection = database.collection('players');
+    const collection = database.collection(collectionName);
     await collection.updateOne(
         { _id: event.game_play.player_id },
         { $set: { psid: senderId, updated_at: new Date() } },
