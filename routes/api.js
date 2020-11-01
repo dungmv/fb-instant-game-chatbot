@@ -61,7 +61,7 @@ router.post('/push/:id', async (req, res) => {
     const collectionStatus = database.collection('status-' + req.params.id);
     await collectionStatus.insertOne({ _id: id, msg: 'sending', running: 1, completed: 0, total: 0, success: 0, error: 0, created_at: new Date() });
 
-    res.redirect('/api/push?id=' + id.toHexString());
+    res.json({id: id.toHexString(), err: 0, msg: 'success'});
     message.attachment.payload.elements[0].title = body.title;
     message.attachment.payload.elements[0].subtitle = body.mssage;
     message.attachment.payload.elements[0].image_url = body.image;
