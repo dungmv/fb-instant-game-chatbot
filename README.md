@@ -23,6 +23,15 @@
 }
 ```
 
+**Response** :
+```json
+{
+    "id": "5f6879441d74150ca42ad922",
+    "err": 0,
+    "msg": "success"
+}
+```
+
 ## get the results of the messaging process
 
 **URL** : `/api/push/{game-id}?id=xxx`
