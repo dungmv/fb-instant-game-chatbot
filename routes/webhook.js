@@ -3,20 +3,6 @@ const express = require('express');
 const router = express.Router();
 
 /* GET home page. */
-router.get('/', (req, res) => {
-    // Parse the query params
-    let mode = req.query['hub.mode'];
-    let token = req.query['hub.verify_token'];
-    let challenge = req.query['hub.challenge'];
-    if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-        res.status(200).send(challenge);
-    } else {
-        console.warn('Failed validation. Make sure the tokens match.');
-        res.sendStatus(403);
-    }
-});
-
-/* GET home page. */
 router.get('/:id', async (req, res) => {
     // Parse the query params
     let mode = req.query['hub.mode'];
@@ -34,25 +20,6 @@ router.get('/:id', async (req, res) => {
         res.sendStatus(403);
     }
 });
-
-router.post('/', (req, res) => {
-    let data = req.body;
-    // Make sure this is a page subscription
-    if (data.object === 'page') {
-        // Iterate over each entry - there may be multiple if batched
-        data.entry.forEach(function (entry) {
-            // Here you can obtain values about the webhook, such as:
-            // var pageID = entry.id
-            // var timeOfEvent = entry.time
-            entry.messaging.forEach(function (event) {
-                if (event.game_play) {
-                    receivedGameplay(event, 'players');
-                }
-            });
-        });
-    }
-    res.sendStatus(200);
-})
 
 router.post('/:id', (req, res) => {
     let data = req.body;
