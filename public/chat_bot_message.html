@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Bot Message</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+            integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+            crossorigin="anonymous"
+        />
+    </head>
+
+    <body>
+        <div class="container mt-3">
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <div class="p-3 bg-light">
+                        <form action="" method="post " id="api-form">
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" name="title" class="form-control" id="title" value="" placeholder="Input title" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Message</label>
+                                <input type="text" name="message" class="form-control" id="msg" value="" placeholder="Input message" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Game Id</label>
+                                <input type="text" name="game_id" class="form-control" id="game-id" value="" placeholder="Input Game Id" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Secret Key</label>
+                                <input type="text" name="secret_key" class="form-control" id="secret-key" value="" placeholder="Input Secret key" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Image</label>
+                                <input type="text" name="image" class="form-control" id="img" required value="" placeholder="Input image URL">
+                            </div>
+                            <div class="form-group">
+                                <label>Button Title</label>
+                                <input type="text" name="btn_title" id="btn-title" class="form-control" value="" placeholder="Input button title" required>
+                            </div>
+                            <div class="form-group text-center">
+                                <button class="btn btn-secondary" type="reset">Reset</button>
+                                <button class="btn btn-success" type="submit">Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 py-3 bg-light">
+                    <h3>Result</h3>
+                    <div id="result"></div>
+                    <div class="form-msg">
+                        <h4>Get message processing</h4>
+                        <form action="" method="POST" id="form-msg-view">
+                            <div class="input-group mb-3">
+                                <input type="text" name="response_id" required id="response-id" value="" class="form-control">
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-info">Submit</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="msg-result"></div>
+                </div>
+            </div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous">
+        </script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous">
+        </script>
+        <script>
+            $(document).ready(function () {
+                $('#api-form').on('submit', function (evt) {
+                    evt.preventDefault();
+                    let gameId = $('#game-id').val();
+                    if (!gameId) return;
+                    let postData = {
+                        title: $('#title').val(),
+                        mssage: $('#msg').val(),
+                        image: $('#img').val(),
+                        button_title: $('#btn-title').val(),
+                        button_payload: "{}"
+                    }
+                    let url = `https://chatbot.adpia.com.vn/api/push/${gameId}`;
+                    $.ajax({
+                        url: url,
+                        method: 'POST',
+                        headers: {
+                            "content-type": "application/json",
+                            "secret-key": $('#secret-key').val(),
+                        },
+                        dataType: "json",
+                        data: JSON.stringify(postData),
+                        async: true,
+                        crossDomain: true,
+                        success: function (data) {
+                            let responseView = `
+                                <p>ID: ${data.id}</p>
+                                <p>Err: ${data.err}</p>
+                                <p>Msg: ${data.msg}</p>
+                            `;
+                            $('#result').html(responseView);
+                            $('#response-id').val(data.id);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.log(textStatus, errorThrown);
+                        }
+                    })
+                });
+
+                $('#form-msg-view').on('submit', function (evt) {
+                    evt.preventDefault();
+                    let msgId = $('#response-id').val();
+                    if (!msgId) return;
+                    let gameId = $('#game-id').val();
+
+                    let url = `https://chatbot.adpia.com.vn/api/push/${gameId}?id=${msgId}`;
+                    $.ajax({
+                        url: url,
+                        method: 'GET',
+                        dataType: "json",
+                        success: function (data) {
+                            let responseView = JSON.stringify(data)
+                            $('#msg-result').html(responseView);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.log(textStatus, errorThrown);
+                        }
+                    })
+                })
+            });
+        </script>
+    </body>
+</html>
