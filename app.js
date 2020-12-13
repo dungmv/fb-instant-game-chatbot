@@ -7,6 +7,7 @@ var cors = require('cors')
 
 var indexRouter = require('./routes/index');
 var webhookRouter = require('./routes/webhook');
+var instantWebhook = require('./routes/instantWebhook');
 var apiRouter = require('./routes/api');
 
 var app = express();
@@ -20,6 +21,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/webhook', webhookRouter);
+app.use('/instantWebhook', instantWebhook);
+
 app.use('/api', apiRouter);
 
 module.exports = app;
