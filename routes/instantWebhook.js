@@ -25,6 +25,7 @@ router.get('/:id', async (req, res) => {
 router.post('/:id', (req, res) => {
     let data = req.body;
     // Make sure this is a page subscription
+    console.log('data ',data);
     if (data.object === 'page') {
         // Iterate over each entry - there may be multiple if batched
         data.entry.forEach(function (entry) {
