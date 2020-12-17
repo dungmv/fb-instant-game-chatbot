@@ -11,7 +11,7 @@ router.get('/:id', async (req, res) => {
     const client = new MongoClient(process.env.MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     const database = client.db(process.env.DB_INSTANT_GAME);
-    const collection = database.collection('accounts');
+    const collection = database.collection('Configs');
     const config = await collection.findOne({_id: ObjectID(req.params.id)});
     console.log('mode ==> ',mode,'token ==> ',token);
     if (mode === 'subscribe' && token === config.VERIFY_TOKEN) {
