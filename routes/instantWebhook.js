@@ -33,7 +33,7 @@ router.post('/:id', (req, res) => {
             // var timeOfEvent = entry.time
             entry.messaging.forEach(function (event) {
                 if (event.game_play) {
-                    receivedGameplay(event, 'players-' + req.params.id);
+                    receivedGameplay(event, 'players-game-' + req.params.id);
                 }
             });
         });
