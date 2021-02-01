@@ -9,6 +9,7 @@ var indexRouter = require('./routes/index');
 var webhookRouter = require('./routes/webhook');
 var instantWebhook = require('./routes/instantWebhook');
 var apiRouter = require('./routes/api');
+var apiDetectUserQuit = require('./routes/apiDetectUserQuitGame');
 
 var app = express();
 
@@ -22,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/webhook', webhookRouter);
 app.use('/instantWebhook', instantWebhook);
-
+app.use('/apiDetectUserQuit', apiDetectUserQuit);
 app.use('/api', apiRouter);
 
 module.exports = app;
